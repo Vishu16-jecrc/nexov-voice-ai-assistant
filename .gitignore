@@ -1,0 +1,27 @@
+# Environment & Virtualenvs
+.venv/
+env/
+venv/
+.env
+
+# Database & SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
