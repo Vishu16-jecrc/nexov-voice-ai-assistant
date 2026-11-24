@@ -26,6 +26,7 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
 }) => {
   const [phoneInput, setPhoneInput] = useState('');
   const [viewMode, setViewMode] = useState<'my_bookings' | 'all'>('my_bookings');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'completed' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleReset = async () => {
@@ -58,16 +59,25 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
     return aptDigits === userDigits || aptDigits.endsWith(userDigits) || userDigits.endsWith(aptDigits);
   });
 
-  const displayedAppointments = (viewMode === 'my_bookings' ? myAppointments : appointments).filter(apt => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      apt.phone_number.includes(term) ||
-      apt.doctor_name.toLowerCase().includes(term) ||
-      apt.specialty.toLowerCase().includes(term) ||
-      apt.appointment_date.includes(term)
-    );
-  });
+  const displayedAppointments = (viewMode === 'my_bookings' ? myAppointments : appointments)
+    .filter(apt => {
+      if (statusFilter !== 'all' && apt.status !== statusFilter) return false;
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        apt.phone_number.includes(term) ||
+        apt.doctor_name.toLowerCase().includes(term) ||
+        apt.specialty.toLowerCase().includes(term) ||
+        apt.appointment_date.includes(term)
+      );
+    })
+    .sort((a, b) => {
+      // 1. Confirmed active appointments always on top
+      if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
+      if (b.status === 'confirmed' && a.status !== 'confirmed') return 1;
+      // 2. Sort by date descending
+      return b.appointment_date.localeCompare(a.appointment_date);
+    });
 
   return (
     <div id="appointments-section" className="w-full max-w-6xl mx-auto px-4 my-10">
@@ -265,6 +275,52 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
           </div>
         )}
 
+        {/* Category Filter Pills */}
+        {(viewMode === 'all' || (viewMode === 'my_bookings' && myAppointments.length > 0)) && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-4 text-xs font-sans">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                statusFilter === 'all'
+                  ? 'bg-black text-white shadow-sm'
+                  : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
+              }`}
+            >
+              All Records ({viewMode === 'my_bookings' ? myAppointments.length : appointments.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('confirmed')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                statusFilter === 'confirmed'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+              }`}
+            >
+              Confirmed Active ({(viewMode === 'my_bookings' ? myAppointments : appointments).filter(a => a.status === 'confirmed').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                statusFilter === 'completed'
+                  ? 'bg-zinc-800 text-white shadow-sm'
+                  : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+              }`}
+            >
+              Past Visits ({(viewMode === 'my_bookings' ? myAppointments : appointments).filter(a => a.status === 'completed').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('cancelled')}
+              className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                statusFilter === 'cancelled'
+                  ? 'bg-zinc-600 text-white shadow-sm'
+                  : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500'
+              }`}
+            >
+              Cancelled ({(viewMode === 'my_bookings' ? myAppointments : appointments).filter(a => a.status === 'cancelled').length})
+            </button>
+          </div>
+        )}
+
         {/* Appointments List (Table) */}
         {(viewMode === 'all' || (viewMode === 'my_bookings' && displayedAppointments.length > 0)) && (
           <div className="overflow-x-auto rounded-2xl border border-zinc-200">
@@ -346,8 +402,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                           </span>
                         )}
                         {apt.status === 'completed' && (
-                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-800">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-800 border border-zinc-200">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-zinc-600" />
                             <span>Completed</span>
                           </span>
                         )}
@@ -364,6 +420,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                             <PhoneCall className="w-3 h-3" />
                             <span>Cancel via Voice</span>
                           </button>
+                        ) : apt.status === 'completed' ? (
+                          <span className="text-[11px] text-zinc-500 font-medium">Completed Visit</span>
                         ) : (
                           <span className="text-[11px] text-zinc-400 italic">Slot Freed</span>
                         )}

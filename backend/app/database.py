@@ -120,6 +120,23 @@ def seed_sample_data():
             """, (u, p, ph, fn, now_iso))
         conn.commit()
 
+    # Seed realistic past demo appointments for Vishu Patel (phone: 9876543210) if empty
+    cursor.execute("SELECT COUNT(*) as count FROM appointments")
+    if cursor.fetchone()["count"] == 0:
+        now_str = datetime.now().isoformat()
+        past_demos = [
+            ("Vishu Patel", "9876543210", 2, "Dr. Marcus Vance", "Dermatology", "2026-11-17", "11:45 AM", "completed", "Routine skin allergy checkup & prescription renewal"),
+            ("Vishu Patel", "9876543210", 3, "Dr. Elena Rostova", "General Medicine & Pediatrics", "2026-11-10", "09:00 AM", "completed", "Seasonal flu assessment & vital signs evaluation"),
+            ("Vishu Patel", "9876543210", 4, "Dr. Aris Thorne", "Orthopedics & Sports Medicine", "2026-11-21", "03:30 PM", "completed", "Physical therapy follow-up for joint sprain"),
+            ("Vishu Patel", "9876543210", 1, "Dr. Sarah Jenkins", "Cardiology", "2026-11-23", "02:00 PM", "cancelled", "Rescheduled by patient due to travel conflict")
+        ]
+        for pat, ph, doc_id, doc_name, spec, apt_d, apt_t, st, nts in past_demos:
+            cursor.execute("""
+            INSERT INTO appointments (patient_name, phone_number, doctor_id, doctor_name, specialty, appointment_date, appointment_time, status, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (pat, ph, doc_id, doc_name, spec, apt_d, apt_t, st, nts, now_str))
+        conn.commit()
+
     # Check if doctors already seeded
     cursor.execute("SELECT COUNT(*) as count FROM doctors")
     if cursor.fetchone()["count"] > 0:
