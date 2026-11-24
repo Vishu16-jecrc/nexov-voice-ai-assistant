@@ -94,7 +94,7 @@ class GeminiService:
         executed_tools = []
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=8.0) as client:
                 res = await client.post(url, json=payload)
                 if res.status_code != 200:
                     logger.error(f"Gemini API returned error {res.status_code}: {res.text}")
@@ -138,13 +138,42 @@ class GeminiService:
                             "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
                             "contents": contents
                         }
-                        f_res = await client.post(url, json=payload)
-                        if f_res.status_code == 200:
-                            f_data = f_res.json()
-                            f_parts = f_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-                            for fp in f_parts:
-                                if "text" in fp:
-                                    return fp["text"], executed_tools
+                        try:
+                            f_res = await client.post(url, json=followup_payload)
+                            if f_res.status_code == 200:
+                                f_data = f_res.json()
+                                f_parts = f_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                                for fp in f_parts:
+                                    if "text" in fp and fp["text"].strip():
+                                        return fp["text"].strip(), executed_tools
+                            else:
+                                logger.error(f"Gemini followup turn failed: {f_res.status_code} {f_res.text}")
+                        except Exception as fe:
+                            logger.error(f"Gemini followup exception: {fe}")
+
+                        # Natural fallback phrasing when followup turn times out or errors
+                        if fn_name == "book_appointment" and result.get("status") == "success":
+                            return (
+                                f"Your appointment with {result.get('doctor_name')} on {result.get('date')} at "
+                                f"{result.get('time')} has been confirmed! Your appointment ID is #{result.get('appointment_id')}. "
+                                f"We have registered it under phone number {result.get('phone_number')}.",
+                                executed_tools
+                            )
+                        elif fn_name == "cancel_appointment" and result.get("status") == "success":
+                            return (
+                                f"Your appointment with {result.get('doctor_name')} on {result.get('date')} has been successfully cancelled, "
+                                f"and the slot has been freed.",
+                                executed_tools
+                            )
+                        elif fn_name == "check_doctor_availability" and result.get("available_slots"):
+                            slots_preview = ", ".join([f"{s['time']} with {s['doctor_name']}" for s in result["available_slots"][:3]])
+                            return (
+                                f"I found the following open slots: {slots_preview}. "
+                                f"Which time slot works best for you? Also, please tell me your phone number so I can book it.",
+                                executed_tools
+                            )
+                        elif "message" in result:
+                            return result["message"], executed_tools
 
                     elif "text" in part:
                         return part["text"], executed_tools

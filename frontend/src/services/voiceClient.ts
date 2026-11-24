@@ -17,6 +17,9 @@ export class VoiceClient {
   private audioQueue: string[] = [];
   private isPlayingAudio: boolean = false;
   private currentAudioElement: HTMLAudioElement | null = null;
+  private recognition: any = null;
+  private isRecognitionRunning: boolean = false;
+  private isAgentSpeakingState: boolean = false;
 
   public subscribe(cb: (event: VoiceClientEvent) => void) {
     this.listeners.push(cb);
@@ -47,11 +50,14 @@ export class VoiceClient {
           audioManager.stopRingtone();
           this.emit({ type: 'state_change', state: 'connected' });
 
-          // Request mic access
+          // Request mic access for waveform
           const stream = await audioManager.startMicrophone();
           if (stream) {
             this.startAudioStreaming(stream);
           }
+
+          // Start Web Speech Recognition for voice input
+          this.startSpeechRecognition();
 
           // Trigger agent initial greeting
           this.sendMessage({ type: 'start_call' });
@@ -82,9 +88,64 @@ export class VoiceClient {
     }
   }
 
+  private startSpeechRecognition() {
+    try {
+      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognitionClass) {
+        console.warn("SpeechRecognition not supported in this browser.");
+        return;
+      }
+
+      this.recognition = new SpeechRecognitionClass();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'en-US';
+
+      this.recognition.onresult = (event: any) => {
+        if (this.isAgentSpeakingState) {
+          // Acoustic echo suppression: avoid transcribing Aria's own speech
+          return;
+        }
+        const lastResultIndex = event.results.length - 1;
+        const text = event.results[lastResultIndex][0].transcript.trim();
+        if (text) {
+          console.log("Voice recognized:", text);
+          this.sendTextMessage(text);
+        }
+      };
+
+      this.recognition.onerror = (event: any) => {
+        console.warn("Speech recognition error:", event.error);
+      };
+
+      this.recognition.onend = () => {
+        // Automatically restart listening if call is still active
+        if (this.isRecognitionRunning) {
+          try {
+            this.recognition.start();
+          } catch {}
+        }
+      };
+
+      this.recognition.start();
+      this.isRecognitionRunning = true;
+    } catch (e) {
+      console.warn("Error starting speech recognition:", e);
+    }
+  }
+
+  private stopSpeechRecognition() {
+    this.isRecognitionRunning = false;
+    if (this.recognition) {
+      try {
+        this.recognition.stop();
+      } catch {}
+      this.recognition = null;
+    }
+  }
+
   private startAudioStreaming(stream: MediaStream) {
     try {
-      // Use standard MediaRecorder to capture chunks
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
       this.mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 16000 });
 
@@ -102,7 +163,7 @@ export class VoiceClient {
         }
       };
 
-      this.mediaRecorder.start(250); // send slice every 250ms for low latency
+      this.mediaRecorder.start(250);
     } catch (e) {
       console.warn("MediaRecorder setup error:", e);
     }
@@ -110,15 +171,25 @@ export class VoiceClient {
 
   private handleServerMessage(data: any) {
     if (data.type === 'agent_transcript') {
+      const agentMsg: TranscriptMessage = {
+        id: Math.random().toString(),
+        role: 'agent',
+        text: data.text,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
       this.emit({
         type: 'agent_transcript',
-        message: {
-          id: Math.random().toString(),
-          role: 'agent',
-          text: data.text,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
+        message: agentMsg
       });
+
+      // Browser TTS Fallback: Speak text if ElevenLabs audio not arriving
+      window.setTimeout(() => {
+        if (!this.isPlayingAudio && this.audioQueue.length === 0) {
+          this.speakWithBrowserTTS(data.text);
+        }
+      }, 300);
+
     } else if (data.type === 'user_transcript') {
       this.emit({
         type: 'user_transcript',
@@ -131,6 +202,10 @@ export class VoiceClient {
       });
     } else if (data.type === 'agent_audio') {
       if (data.audio_base64) {
+        // Stop any browser synthetic speech when true ElevenLabs audio arrives
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
         this.enqueueAudio(data.audio_base64, data.mime || 'audio/mp3');
       }
     } else if (data.type === 'booking_confirmed') {
@@ -154,6 +229,49 @@ export class VoiceClient {
     }
   }
 
+  private speakWithBrowserTTS(text: string) {
+    if (!('speechSynthesis' in window)) return;
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.05;
+
+      // Pick a natural English female voice
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(v => 
+        (v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Google US English')))
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+      }
+
+      utterance.onstart = () => {
+        this.isAgentSpeakingState = true;
+        this.emit({ type: 'agent_speaking', isSpeaking: true });
+      };
+
+      utterance.onend = () => {
+        this.emit({ type: 'agent_speaking', isSpeaking: false });
+        setTimeout(() => {
+          this.isAgentSpeakingState = false;
+        }, 400);
+      };
+
+      utterance.onerror = () => {
+        this.isAgentSpeakingState = false;
+        this.emit({ type: 'agent_speaking', isSpeaking: false });
+      };
+
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Speech synthesis error:", e);
+    }
+  }
+
   private enqueueAudio(base64: string, mime: string) {
     this.audioQueue.push(`data:${mime};base64,${base64}`);
     if (!this.isPlayingAudio) {
@@ -165,10 +283,14 @@ export class VoiceClient {
     if (this.audioQueue.length === 0) {
       this.isPlayingAudio = false;
       this.emit({ type: 'agent_speaking', isSpeaking: false });
+      setTimeout(() => {
+        this.isAgentSpeakingState = false;
+      }, 400);
       return;
     }
 
     this.isPlayingAudio = true;
+    this.isAgentSpeakingState = true;
     this.emit({ type: 'agent_speaking', isSpeaking: true });
 
     const src = this.audioQueue.shift()!;
@@ -217,6 +339,12 @@ export class VoiceClient {
       try {
         this.ws.send(JSON.stringify({ type: 'end_call' }));
       } catch {}
+    }
+
+    this.stopSpeechRecognition();
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
