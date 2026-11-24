@@ -128,7 +128,7 @@ def seed_sample_data():
             ("Vishu Patel", "9876543210", 2, "Dr. Marcus Vance", "Dermatology", "2026-11-17", "11:45 AM", "completed", "Routine skin allergy checkup & prescription renewal"),
             ("Vishu Patel", "9876543210", 3, "Dr. Elena Rostova", "General Medicine & Pediatrics", "2026-11-10", "09:00 AM", "completed", "Seasonal flu assessment & vital signs evaluation"),
             ("Vishu Patel", "9876543210", 4, "Dr. Aris Thorne", "Orthopedics & Sports Medicine", "2026-11-21", "03:30 PM", "completed", "Physical therapy follow-up for joint sprain"),
-            ("Vishu Patel", "9876543210", 1, "Dr. Sarah Jenkins", "Cardiology", "2026-11-23", "02:00 PM", "cancelled", "Rescheduled by patient due to travel conflict")
+            ("Vishu Patel", "9876543210", 1, "Dr. Khushi Sharma", "Cardiology", "2026-11-23", "02:00 PM", "cancelled", "Rescheduled by patient due to travel conflict")
         ]
         for pat, ph, doc_id, doc_name, spec, apt_d, apt_t, st, nts in past_demos:
             cursor.execute("""
@@ -145,7 +145,7 @@ def seed_sample_data():
 
     doctors = [
         {
-            "name": "Dr. Sarah Jenkins",
+            "name": "Dr. Khushi Sharma",
             "specialty": "Cardiology",
             "bio": "Specialist in cardiovascular health, hypertension, and heart rhythm disorders.",
             "avatar": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300",

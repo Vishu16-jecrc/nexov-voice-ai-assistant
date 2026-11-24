@@ -17,7 +17,7 @@ GEMINI_FUNCTIONS = [
         "parameters": {
             "type": "OBJECT",
             "properties": {
-                "doctor_name": {"type": "STRING", "description": "Name of the doctor (e.g. Dr. Sarah Jenkins)"},
+                "doctor_name": {"type": "STRING", "description": "Name of the doctor (e.g. Dr. Khushi Sharma)"},
                 "specialty": {"type": "STRING", "description": "Medical specialty (e.g. Cardiology, Dermatology)"},
                 "date_str": {"type": "STRING", "description": "Date requested, e.g. 'today', 'tomorrow', or 'YYYY-MM-DD'"}
             }
@@ -124,11 +124,11 @@ class GeminiService:
                             "parts": [{"functionCall": fn}]
                         })
                         contents.append({
-                            "role": "function",
+                            "role": "user",
                             "parts": [{
                                 "functionResponse": {
                                     "name": fn_name,
-                                    "response": {"result": result}
+                                    "response": {"name": fn_name, "content": result}
                                 }
                             }]
                         })
@@ -217,8 +217,8 @@ class GeminiService:
         # 1. User wants to check availability or asks for doctors
         if any(w in last_user_msg for w in ["available", "slots", "doctor", "appointment", "schedule", "dr", "cardiology", "dermatologist", "free"]):
             doc_name = None
-            if "jenkins" in last_user_msg or "sarah" in last_user_msg or "cardio" in last_user_msg:
-                doc_name = "Dr. Sarah Jenkins"
+            if "sharma" in last_user_msg or "khushi" in last_user_msg or "jenkins" in last_user_msg or "sarah" in last_user_msg or "cardio" in last_user_msg:
+                doc_name = "Dr. Khushi Sharma"
             elif "vance" in last_user_msg or "marcus" in last_user_msg or "derma" in last_user_msg:
                 doc_name = "Dr. Marcus Vance"
             elif "rostova" in last_user_msg or "elena" in last_user_msg or "general" in last_user_msg:
@@ -237,13 +237,13 @@ class GeminiService:
                 text = f"We have several open slots today: {', '.join(slot_strings)}. Which time works best for you? Also, may I please have your phone number to proceed with the booking?"
                 return text, executed_tools
             else:
-                return "We have Dr. Sarah Jenkins in Cardiology and Dr. Marcus Vance in Dermatology. Would you like an appointment today or tomorrow, and what is your phone number?", executed_tools
+                return "We have Dr. Khushi Sharma in Cardiology and Dr. Marcus Vance in Dermatology. Would you like an appointment today or tomorrow, and what is your phone number?", executed_tools
 
         # 2. Confirmation step: caller confirmed phone number (e.g. 'yes', 'that is correct', 'yes that is right')
         if any(w in last_user_msg for w in ["yes", "correct", "right", "confirm", "yeah", "yep", "sure"]):
             if detected_phone:
-                # Find an open slot for Sarah Jenkins or Marcus Vance
-                avail = execute_tool("check_doctor_availability", {"doctor_name": "Dr. Sarah Jenkins"})
+                # Find an open slot for Khushi Sharma or Marcus Vance
+                avail = execute_tool("check_doctor_availability", {"doctor_name": "Dr. Khushi Sharma"})
                 if avail.get("available_slots"):
                     slot = avail["available_slots"][0]
                     res = execute_tool("book_appointment", {
@@ -263,7 +263,7 @@ class GeminiService:
         # 3. User provides phone number or requests booking
         if detected_phone and any(w in last_user_msg for w in ["book", "take", "am", "pm", "morning", "afternoon", "schedule"]):
             spaced_phone = ", ".join(list(detected_phone))
-            return f"Thank you! Before I confirm your booking with Dr. Sarah Jenkins, I heard your phone number as {spaced_phone}. Is that phone number correct?", executed_tools
+            return f"Thank you! Before I confirm your booking with Dr. Khushi Sharma, I heard your phone number as {spaced_phone}. Is that phone number correct?", executed_tools
 
         # 4. User wants to cancel an appointment
         if any(w in last_user_msg for w in ["cancel", "drop", "delete appointment", "remove booking"]):

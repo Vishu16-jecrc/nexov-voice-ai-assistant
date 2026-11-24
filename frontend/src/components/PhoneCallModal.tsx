@@ -84,7 +84,7 @@ export const PhoneCallModal: React.FC<PhoneCallModalProps> = ({
   };
 
   const quickPrompts = [
-    "Check Dr. Sarah Jenkins' availability",
+    "Check Dr. Khushi Sharma's availability",
     "I would like to book the 02:00 PM slot",
     "My phone number is 9876543210",
     "Yes, that phone number is correct",

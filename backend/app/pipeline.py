@@ -53,7 +53,7 @@ TOOL_DEFINITIONS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "doctor_name": {"type": "string", "description": "Name of the doctor (e.g. Dr. Sarah Jenkins)"},
+                    "doctor_name": {"type": "string", "description": "Name of the doctor (e.g. Dr. Khushi Sharma)"},
                     "specialty": {"type": "string", "description": "Medical specialty (e.g. Cardiology, Dermatology)"},
                     "date_str": {"type": "string", "description": "Date requested, e.g., 'today', 'tomorrow', or 'YYYY-MM-DD'"}
                 }
