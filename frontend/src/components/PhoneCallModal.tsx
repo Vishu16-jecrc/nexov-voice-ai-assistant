@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   PhoneOff, Mic, MicOff, Sparkles, 
-  Send, Keyboard, Bot 
+  Send, Keyboard, Bot, X 
 } from 'lucide-react';
 import { CallState, TranscriptMessage, BookingConfirmation } from '../types';
 import { AudioWaveform } from './AudioWaveform';
@@ -47,6 +47,16 @@ export const PhoneCallModal: React.FC<PhoneCallModalProps> = ({
     }
     return () => clearInterval(timer);
   }, [callState]);
+
+  // Auto-dismiss the call screen by itself after call ends
+  useEffect(() => {
+    if (callState === 'ended') {
+      const timer = window.setTimeout(() => {
+        onEndCall();
+      }, 1000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [callState, onEndCall]);
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -96,6 +106,15 @@ export const PhoneCallModal: React.FC<PhoneCallModalProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Quick Close Button */}
+        <button
+          onClick={onEndCall}
+          className="absolute top-3 right-4 z-40 p-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-all border border-zinc-200 shadow-sm"
+          title="Close Modal"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
 
         {/* Top Header Inside Phone */}
         <div className="pt-8 pb-3 px-3 text-center border-b border-zinc-200 bg-zinc-50/80">

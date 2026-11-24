@@ -154,32 +154,6 @@ def seed_sample_data():
                 VALUES (?, ?, ?, ?, 0)
                 """, (doctor_id, d["name"], target_date, t))
 
-    # Add 2 initial demo appointments to make the dashboard look active
-    today_str = date.today().strftime("%Y-%m-%d")
-    tomorrow_str = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-    now_str = datetime.now().isoformat()
-
-    cursor.execute("""
-    INSERT INTO appointments (patient_name, phone_number, doctor_id, doctor_name, specialty, appointment_date, appointment_time, status, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("Jane Doe", "5551234567", 1, "Dr. Sarah Jenkins", "Cardiology", today_str, "09:00 AM", "confirmed", "Annual heart check-up", now_str))
-    
-    # Mark slot booked
-    cursor.execute("""
-    UPDATE available_slots SET is_booked = 1, booked_by_phone = '5551234567', booked_at = ?
-    WHERE doctor_id = 1 AND date = ? AND time = '09:00 AM'
-    """, (now_str, today_str))
-
-    cursor.execute("""
-    INSERT INTO appointments (patient_name, phone_number, doctor_id, doctor_name, specialty, appointment_date, appointment_time, status, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, ("Robert Smith", "5559876543", 2, "Dr. Marcus Vance", "Dermatology", tomorrow_str, "10:30 AM", "confirmed", "Skin allergy consultation", now_str))
-
-    cursor.execute("""
-    UPDATE available_slots SET is_booked = 1, booked_by_phone = '5559876543', booked_at = ?
-    WHERE doctor_id = 2 AND date = ? AND time = '10:30 AM'
-    """, (now_str, tomorrow_str))
-
     conn.commit()
     conn.close()
 

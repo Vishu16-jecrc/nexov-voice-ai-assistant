@@ -19,6 +19,18 @@ export const App: React.FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [highlightedAptId, setHighlightedAptId] = useState<number | null>(null);
+  const [userPhone, setUserPhone] = useState<string>(() => {
+    return localStorage.getItem('nexov_user_phone') || '';
+  });
+
+  const handleUpdateUserPhone = (phone: string) => {
+    setUserPhone(phone);
+    if (phone) {
+      localStorage.setItem('nexov_user_phone', phone);
+    } else {
+      localStorage.removeItem('nexov_user_phone');
+    }
+  };
 
   // Search & Location
   const [location, setLocation] = useState('New Delhi');
@@ -63,11 +75,22 @@ export const App: React.FC = () => {
           setTranscript([]);
           setBookingConfirmation(null);
           setToolActivity(null);
+        } else if (event.state === 'ended') {
+          // Auto-dismiss the call screen by itself after call finishes
+          window.setTimeout(() => {
+            setCallState('idle');
+            scrollToAppointments();
+          }, 1000);
         }
       } else if (event.type === 'agent_transcript') {
         setTranscript(prev => [...prev, event.message]);
       } else if (event.type === 'user_transcript') {
         setTranscript(prev => [...prev, event.message]);
+        // Auto-extract 10 digit phone number if caller stated it
+        const digits = event.message.text.replace(/\D/g, '');
+        if (digits.length === 10) {
+          handleUpdateUserPhone(digits);
+        }
       } else if (event.type === 'agent_speaking') {
         setIsAgentSpeaking(event.isSpeaking);
       } else if (event.type === 'tool_activity') {
@@ -76,10 +99,16 @@ export const App: React.FC = () => {
       } else if (event.type === 'booking_confirmed') {
         setBookingConfirmation(event.data);
         setHighlightedAptId(event.data.appointment_id);
+        if (event.data.phone_number) {
+          handleUpdateUserPhone(event.data.phone_number);
+        }
         loadData();
         setTimeout(() => setHighlightedAptId(null), 5000);
       } else if (event.type === 'appointment_cancelled') {
         setHighlightedAptId(event.data.appointment_id);
+        if (event.data.phone_number) {
+          handleUpdateUserPhone(event.data.phone_number);
+        }
         loadData();
         setTimeout(() => setHighlightedAptId(null), 5000);
       }
@@ -96,6 +125,11 @@ export const App: React.FC = () => {
 
   const handleEndCall = () => {
     voiceClient.endCall();
+    // Auto-dismiss call modal and scroll to appointments
+    window.setTimeout(() => {
+      setCallState('idle');
+      scrollToAppointments();
+    }, 900);
   };
 
   const handleSendMessage = (text: string) => {
@@ -146,6 +180,9 @@ export const App: React.FC = () => {
           <AppointmentsTable 
             appointments={appointments}
             highlightedAptId={highlightedAptId}
+            userPhone={userPhone}
+            onUpdateUserPhone={handleUpdateUserPhone}
+            onStartCall={handleStartCall}
           />
         </div>
 
