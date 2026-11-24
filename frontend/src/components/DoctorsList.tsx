@@ -1,118 +1,166 @@
 import React, { useState } from 'react';
 import { Doctor, Slot } from '../types';
-import { Star, Clock, MapPin, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ThumbsUp, MapPin, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DoctorsListProps {
   doctors: Doctor[];
   slots: Slot[];
+  searchTerm?: string;
   onSelectSlot?: (doctorName: string, date: string, time: string) => void;
+  onBookVoice?: () => void;
 }
 
-export const DoctorsList: React.FC<DoctorsListProps> = ({ doctors, slots }) => {
+export const DoctorsList: React.FC<DoctorsListProps> = ({ 
+  doctors, 
+  slots, 
+  searchTerm = '', 
+  onBookVoice 
+}) => {
   const [expandedDoctorId, setExpandedDoctorId] = useState<number | null>(null);
 
   const toggleExpand = (id: number) => {
     setExpandedDoctorId(expandedDoctorId === id ? null : id);
   };
 
+  const filteredDoctors = doctors.filter(doc => 
+    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.bio.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="w-full max-w-6xl mx-auto px-4 my-10">
+      
+      {/* Practo-style Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b border-zinc-200">
         <div>
-          <h2 className="text-lg font-bold text-black tracking-tight">Clinic Medical Staff</h2>
-          <p className="text-xs text-zinc-500">Board-certified doctors with live schedule availability</p>
+          <h2 className="text-2xl font-bold text-[#1c2b53] tracking-tight">
+            Consult top doctors online for any health concern
+          </h2>
+          <p className="text-sm text-zinc-500 mt-1">
+            Private consultations with verified doctors in all specialities
+          </p>
         </div>
-        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 border border-zinc-200">
-          {doctors.length} Doctors Available
-        </span>
+        
+        <button 
+          onClick={onBookVoice}
+          className="mt-3 sm:mt-0 text-xs font-bold text-sky-600 hover:text-sky-700 border border-sky-400 px-4 py-2 rounded-lg hover:bg-sky-50 transition-colors"
+        >
+          Book via Voice AI
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {doctors.map((doc) => {
-          const docSlots = slots.filter(s => s.doctor_id === doc.id && !s.is_booked);
-          const isExpanded = expandedDoctorId === doc.id;
+      {/* Doctor Cards Listing */}
+      <div className="space-y-4">
+        {filteredDoctors.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-2xl border border-zinc-200 text-zinc-500 text-sm">
+            No doctors found matching "{searchTerm}". Try searching "Cardiology" or "Sarah".
+          </div>
+        ) : (
+          filteredDoctors.map((doc) => {
+            const docSlots = slots.filter(s => s.doctor_id === doc.id && !s.is_booked);
+            const isExpanded = expandedDoctorId === doc.id;
 
-          return (
-            <div 
-              key={doc.id}
-              className="bg-zinc-50/70 border border-zinc-200 hover:border-zinc-300 rounded-2xl p-4 transition-all duration-200"
-            >
-              <div className="flex items-start space-x-3.5">
-                <img 
-                  src={doc.avatar} 
-                  alt={doc.name} 
-                  className="w-14 h-14 rounded-2xl object-cover border border-zinc-200 shadow-sm filter grayscale contrast-110"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm text-black truncate">{doc.name}</h3>
-                    <div className="flex items-center space-x-1 text-black text-xs font-semibold">
-                      <Star className="w-3.5 h-3.5 fill-black" />
-                      <span className="font-mono">{doc.rating}</span>
-                    </div>
+            return (
+              <div 
+                key={doc.id}
+                className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:border-zinc-300 transition-all flex flex-col md:flex-row md:items-start justify-between gap-6"
+              >
+                {/* Left: Doctor Photo & Info */}
+                <div className="flex items-start space-x-4 flex-1">
+                  <div className="relative">
+                    <img 
+                      src={doc.avatar} 
+                      alt={doc.name} 
+                      className="w-20 h-20 rounded-2xl object-cover border border-zinc-200 shadow-sm"
+                    />
+                    <span className="absolute -bottom-1 -right-1 bg-emerald-500 w-3.5 h-3.5 rounded-full border-2 border-white"></span>
                   </div>
-                  <p className="text-xs text-zinc-600 font-semibold mt-0.5">{doc.specialty}</p>
 
-                  <div className="flex items-center space-x-3 text-[11px] text-zinc-500 mt-2 font-medium">
-                    <span className="flex items-center space-x-1">
-                      <MapPin className="w-3 h-3 text-zinc-400" />
-                      <span>{doc.room_number}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <DollarSign className="w-3 h-3 text-zinc-400" />
-                      <span>{doc.consultation_fee}</span>
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-base text-[#1c2b53] hover:text-sky-600 cursor-pointer transition-colors">
+                      {doc.name}
+                    </h3>
+                    <p className="text-xs text-zinc-600 font-medium mt-0.5">{doc.specialty}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">12+ years experience overall</p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-600 mt-2 font-medium">
+                      <span className="flex items-center space-x-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>98%</span>
+                      </span>
+                      <span className="text-zinc-400">•</span>
+                      <span className="flex items-center space-x-1">
+                        <MapPin className="w-3 h-3 text-zinc-400" />
+                        <span>{doc.room_number} • Nexov Clinic</span>
+                      </span>
+                      <span className="text-zinc-400">•</span>
+                      <span className="text-zinc-700 font-bold">{doc.consultation_fee} fee</span>
+                    </div>
+
+                    <p className="text-xs text-zinc-500 mt-2 line-clamp-2 leading-relaxed">
+                      {doc.bio}
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              <p className="text-xs text-zinc-600 mt-3 line-clamp-2 leading-relaxed">
-                {doc.bio}
-              </p>
+                {/* Right: Availability & Action Buttons */}
+                <div className="flex flex-col md:items-end justify-between border-t md:border-t-0 pt-3 md:pt-0 border-zinc-100 min-w-[200px]">
+                  <div className="flex items-center space-x-1.5 text-xs text-emerald-600 font-bold mb-3">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Available Today • {docSlots.length} Open Slots</span>
+                  </div>
 
-              {/* Slots Expand Toggle */}
-              <div className="mt-3 pt-3 border-t border-zinc-200 flex items-center justify-between">
-                <span className="text-[11px] text-zinc-600 flex items-center space-x-1 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-black"></span>
-                  <span><strong className="text-black font-mono">{docSlots.length}</strong> open slots</span>
-                </span>
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => toggleExpand(doc.id)}
+                      className="text-xs font-semibold px-4 py-2 rounded-lg border border-zinc-300 hover:bg-zinc-50 text-zinc-700 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <span>{isExpanded ? 'Hide Slots' : 'View Available Slots'}</span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
 
-                <button
-                  onClick={() => toggleExpand(doc.id)}
-                  className="text-xs font-semibold text-black hover:text-zinc-600 flex items-center space-x-1 transition-colors"
-                >
-                  <span>{isExpanded ? 'Hide Schedule' : 'View Open Slots'}</span>
-                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-
-              {/* Expanded Open Slots list */}
-              {isExpanded && (
-                <div className="mt-3 pt-3 border-t border-zinc-200 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {docSlots.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic">No available slots open at this moment.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-                      {docSlots.slice(0, 10).map((s) => (
-                        <div
-                          key={s.id}
-                          className="text-[11px] font-mono px-2 py-1 rounded-lg bg-white border border-zinc-200 text-zinc-800 flex items-center space-x-1.5 shadow-sm"
-                        >
-                          <Clock className="w-3 h-3 text-zinc-500" />
-                          <span>{s.date.slice(5)}</span>
-                          <span className="text-zinc-300">•</span>
-                          <span className="text-black font-semibold">{s.time}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    <button
+                      onClick={onBookVoice}
+                      className="text-xs font-bold px-4 py-2 rounded-lg bg-[#1c2b53] hover:bg-[#28328c] text-white transition-colors flex items-center justify-center space-x-1 shadow-sm"
+                    >
+                      <span>Book with Voice AI</span>
+                    </button>
+                  </div>
                 </div>
-              )}
 
-            </div>
-          );
-        })}
+                {/* Slot Details Dropdown */}
+                {isExpanded && (
+                  <div className="w-full basis-full mt-4 pt-4 border-t border-zinc-200">
+                    <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider block mb-2">
+                      Live Open Slots:
+                    </span>
+                    {docSlots.length === 0 ? (
+                      <p className="text-xs text-zinc-400 italic">No slots available right now.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {docSlots.slice(0, 10).map((s) => (
+                          <div 
+                            key={s.id}
+                            className="text-xs font-mono px-3 py-1.5 rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-800 flex items-center space-x-2 font-medium"
+                          >
+                            <Clock className="w-3 h-3 text-sky-600" />
+                            <span>{s.date.slice(5)}</span>
+                            <span className="text-zinc-300">•</span>
+                            <span className="font-bold text-black">{s.time}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            );
+          })
+        )}
       </div>
+
     </div>
   );
 };

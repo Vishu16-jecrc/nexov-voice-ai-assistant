@@ -1,58 +1,86 @@
 import React from 'react';
-import { PhoneCall, Activity } from 'lucide-react';
+import { PhoneCall, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   onStartCall: () => void;
   isCallActive: boolean;
+  onScrollToDoctors: () => void;
+  onScrollToAppointments: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onStartCall, isCallActive }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onStartCall,
+  isCallActive,
+  onScrollToDoctors,
+  onScrollToAppointments,
+}) => {
   return (
-    <header className="border-b border-zinc-200 bg-white/95 backdrop-blur-md sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-4 flex items-center justify-between">
+    <header className="border-b border-zinc-200 bg-white sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3.5 flex items-center justify-between">
         
-        {/* Brand identity */}
-        <div className="flex items-center space-x-3">
-          <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center text-white shadow-sm">
-            <Activity className="h-5 w-5 text-white" />
+        {/* Left: Practo-style Logo & Primary Nav */}
+        <div className="flex items-center space-x-8">
+          
+          {/* Logo with Practo dot styling */}
+          <div className="flex items-center space-x-1 cursor-pointer">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+            <span className="text-2xl font-black tracking-tight text-[#1c2b53]">nexov</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-xl tracking-tight text-black">NEXOV<span className="text-zinc-500 font-medium">AI</span></span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-800 border border-zinc-200">
-                Clinical Voice AI
+
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-6 text-sm font-semibold text-zinc-700">
+            <button 
+              onClick={onScrollToDoctors}
+              className="hover:text-sky-600 transition-colors"
+            >
+              Find Doctors
+            </button>
+            <button 
+              onClick={onStartCall}
+              className="hover:text-sky-600 transition-colors flex items-center space-x-1"
+            >
+              <span>Voice Consult</span>
+              <span className="text-[10px] bg-sky-100 text-sky-700 px-1.5 py-0.2 rounded font-bold uppercase">
+                AI
               </span>
-            </div>
-            <p className="text-xs text-zinc-500 font-medium">Doctor Appointment Intelligence & Scheduling</p>
-          </div>
+            </button>
+            <button 
+              onClick={onScrollToAppointments}
+              className="hover:text-sky-600 transition-colors"
+            >
+              Appointments
+            </button>
+            <span className="text-zinc-400">Surgeries</span>
+          </nav>
         </div>
 
-        {/* Primary Action Button */}
-        <div className="flex items-center space-x-3">
+        {/* Right Nav: For Providers + Primary Voice Trigger */}
+        <div className="flex items-center space-x-5 text-xs text-zinc-600">
+          
+          <div className="hidden lg:flex items-center space-x-4">
+            <div className="flex items-center space-x-1 cursor-pointer hover:text-zinc-900">
+              <span className="bg-[#28328c] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">NEW</span>
+              <span className="font-medium">For Clinics</span>
+              <ChevronDown className="w-3 h-3 text-zinc-400" />
+            </div>
+            <span className="text-zinc-300">|</span>
+            <span className="cursor-pointer hover:text-zinc-900 font-medium">Security & HIPAA</span>
+          </div>
+
           <button
             onClick={onStartCall}
             disabled={isCallActive}
-            className={`relative group inline-flex items-center space-x-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              isCallActive 
-                ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed border border-zinc-300' 
-                : 'bg-black hover:bg-zinc-800 text-white shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0'
+            className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+              isCallActive
+                ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed'
+                : 'bg-[#1c2b53] hover:bg-[#28328c] text-white hover:shadow'
             }`}
           >
-            {isCallActive ? (
-              <>
-                <span className="h-2 w-2 rounded-full bg-black animate-ping mr-1"></span>
-                <span>Call in Progress...</span>
-              </>
-            ) : (
-              <>
-                <PhoneCall className="h-4 w-4 text-white group-hover:rotate-12 transition-transform" />
-                <span>Try Voice Call</span>
-                <span className="hidden sm:inline-block text-[11px] font-normal text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded ml-1">
-                  Agent Aria
-                </span>
-              </>
-            )}
+            <PhoneCall className="w-3.5 h-3.5" />
+            <span>{isCallActive ? 'Call in Progress...' : 'Instant Voice Call'}</span>
           </button>
+
         </div>
 
       </div>

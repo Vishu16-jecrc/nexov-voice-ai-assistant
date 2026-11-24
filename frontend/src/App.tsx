@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
-import { StatsOverview } from './components/StatsOverview';
+import { HeroSearch } from './components/HeroSearch';
+import { HeroCards } from './components/HeroCards';
 import { DoctorsList } from './components/DoctorsList';
 import { AppointmentsTable } from './components/AppointmentsTable';
 import { PhoneCallModal } from './components/PhoneCallModal';
-import { Doctor, Slot, Appointment, CallState, TranscriptMessage, BookingConfirmation, ClinicStats } from './types';
+import { Doctor, Slot, Appointment, CallState, TranscriptMessage, BookingConfirmation } from './types';
 import { fetchDoctors, fetchDoctorSlots, fetchAppointments } from './services/api';
 import { voiceClient } from './services/voiceClient';
 
@@ -18,6 +19,22 @@ export const App: React.FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [highlightedAptId, setHighlightedAptId] = useState<number | null>(null);
+
+  // Search & Location
+  const [location, setLocation] = useState('New Delhi');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Refs for scrolling
+  const doctorsRef = useRef<HTMLDivElement | null>(null);
+  const appointmentsRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToDoctors = () => {
+    doctorsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToAppointments = () => {
+    appointmentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Load initial clinic data
   const loadData = async () => {
@@ -85,40 +102,52 @@ export const App: React.FC = () => {
     voiceClient.sendTextMessage(text);
   };
 
-  // Compute live stats
-  const stats: ClinicStats = {
-    totalDoctors: doctors.length,
-    openSlotsToday: slots.filter(s => !s.is_booked).length,
-    confirmedAppointments: appointments.filter(a => a.status === 'confirmed').length,
-    pipelineStatus: 'ready'
-  };
-
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#fafbfc] text-zinc-900 flex flex-col font-sans">
       
-      {/* Top Navigation */}
+      {/* Practo-style Header */}
       <Header 
         onStartCall={handleStartCall}
         isCallActive={callState === 'calling' || callState === 'connected'}
+        onScrollToDoctors={scrollToDoctors}
+        onScrollToAppointments={scrollToAppointments}
       />
 
-      {/* Main Dashboard Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Main Container */}
+      <main className="flex-1 w-full pb-16">
         
-        {/* Metric Overview Cards */}
-        <StatsOverview stats={stats} />
-
-        {/* Doctors Grid with Available Slots */}
-        <DoctorsList 
-          doctors={doctors} 
-          slots={slots} 
+        {/* Dual Search & Location Bar */}
+        <HeroSearch 
+          location={location}
+          setLocation={setLocation}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
         />
+
+        {/* 4 Iconic Practo Feature Cards */}
+        <HeroCards 
+          onStartCall={handleStartCall}
+          onScrollToDoctors={scrollToDoctors}
+          onScrollToAppointments={scrollToAppointments}
+        />
+
+        {/* Doctor Consultation Directory */}
+        <div ref={doctorsRef}>
+          <DoctorsList 
+            doctors={doctors} 
+            slots={slots} 
+            searchTerm={searchTerm}
+            onBookVoice={handleStartCall}
+          />
+        </div>
 
         {/* Real-time Appointments Registry */}
-        <AppointmentsTable 
-          appointments={appointments}
-          highlightedAptId={highlightedAptId}
-        />
+        <div ref={appointmentsRef}>
+          <AppointmentsTable 
+            appointments={appointments}
+            highlightedAptId={highlightedAptId}
+          />
+        </div>
 
       </main>
 
@@ -134,14 +163,23 @@ export const App: React.FC = () => {
         toolActivity={toolActivity}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white py-6 text-center text-xs text-zinc-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="font-medium text-zinc-600">© 2026 NexovAI Clinical Systems • Voice Appointment Assistant</p>
-          <div className="flex items-center space-x-3 text-zinc-400">
-            <span>FDE Assignment Round 1</span>
+      {/* Practo-style Clean Footer */}
+      <footer className="border-t border-zinc-200 bg-white py-8 text-center text-xs text-zinc-500">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-1 font-bold text-sm text-[#1c2b53]">
+            <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+            <span>nexov</span>
+            <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+            <span className="text-zinc-400 font-normal ml-2 text-xs">© 2026 NexovAI Clinical Systems</span>
+          </div>
+          <div className="flex items-center space-x-4 text-zinc-500 font-medium">
+            <span>Find Doctors</span>
             <span>•</span>
-            <span className="font-mono text-black font-semibold">Caller ID: Spoken Phone Number Only</span>
+            <span>Voice Consultation</span>
+            <span>•</span>
+            <span>HIPAA Compliant</span>
+            <span>•</span>
+            <span className="text-[#1c2b53] font-bold">Caller ID: Spoken Phone Number Only</span>
           </div>
         </div>
       </footer>
