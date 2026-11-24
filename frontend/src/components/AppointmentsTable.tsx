@@ -51,6 +51,13 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
     }
   };
 
+  // Auto-switch to show all records when a newly booked appointment arrives
+  React.useEffect(() => {
+    if (highlightedAptId) {
+      setStatusFilter('all');
+    }
+  }, [highlightedAptId]);
+
   // Filter logic
   const myAppointments = appointments.filter(apt => {
     if (!userPhone) return false;
@@ -72,11 +79,14 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
       );
     })
     .sort((a, b) => {
+      // 0. Just booked / highlighted appointment is always #1
+      if (highlightedAptId === a.id) return -1;
+      if (highlightedAptId === b.id) return 1;
       // 1. Confirmed active appointments always on top
       if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
       if (b.status === 'confirmed' && a.status !== 'confirmed') return 1;
-      // 2. Sort by date descending
-      return b.appointment_date.localeCompare(a.appointment_date);
+      // 2. Higher ID (most recent booking) on top
+      return b.id - a.id;
     });
 
   return (
@@ -342,15 +352,22 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                   return (
                     <tr 
                       key={apt.id}
-                      className={`transition-colors duration-500 ${
+                      className={`transition-all duration-700 ${
                         isRecentlyUpdated 
-                          ? 'bg-zinc-100 font-semibold ring-2 ring-black' 
+                          ? 'bg-emerald-50/90 font-bold ring-2 ring-emerald-500 shadow-md scale-[1.002]' 
                           : 'hover:bg-zinc-50/80'
                       }`}
                     >
                       {/* ID */}
                       <td className="py-4 px-4 font-mono text-zinc-500 font-bold">
-                        #{apt.id}
+                        <div className="flex items-center space-x-1.5">
+                          <span>#{apt.id}</span>
+                          {isRecentlyUpdated && (
+                            <span className="text-[9px] bg-emerald-600 text-white font-extrabold px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                              NEW
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Doctor */}
