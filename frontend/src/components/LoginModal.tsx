@@ -42,9 +42,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login_id: loginId.trim(), password })
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // ignore json parse error
+      }
       if (!res.ok) {
-        throw new Error(data.detail || 'Invalid Login credentials');
+        throw new Error(data.detail || (res.status === 401 ? 'Invalid Login ID or Password' : 'Login failed. Please verify credentials.'));
       }
       onLoginSuccess(data.user);
       onClose();
