@@ -11,6 +11,7 @@ interface AppointmentsTableProps {
   userPhone: string;
   onUpdateUserPhone: (phone: string) => void;
   onStartCall: () => void;
+  onOpenLogin?: () => void;
 }
 
 export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({ 
@@ -18,7 +19,8 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
   highlightedAptId,
   userPhone,
   onUpdateUserPhone,
-  onStartCall
+  onStartCall,
+  onOpenLogin
 }) => {
   const [phoneInput, setPhoneInput] = useState('');
   const [viewMode, setViewMode] = useState<'my_bookings' | 'all'>('my_bookings');
@@ -190,9 +192,18 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
               Book a slot using our Voice AI assistant above or enter your phone number to view your appointment.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
+              {onOpenLogin && (
+                <button
+                  onClick={onOpenLogin}
+                  className="px-4 py-2.5 bg-black hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-all flex items-center space-x-1.5 shadow-sm"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Login with ID & Password</span>
+                </button>
+              )}
               <button
                 onClick={onStartCall}
-                className="px-5 py-2.5 bg-black hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-all flex items-center space-x-2 shadow-sm"
+                className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-black font-bold rounded-xl text-xs transition-all flex items-center space-x-2 border border-zinc-200"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
                 <span>Book Slot via Voice Call</span>

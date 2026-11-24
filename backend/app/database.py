@@ -3,6 +3,7 @@ SQLite Database manager for NexovAI Doctor Appointment Voice Assistant.
 Handles persistence for doctors, time slots, appointments, and live call transcripts.
 """
 import sqlite3
+import re
 import json
 import os
 from datetime import datetime, date, timedelta
@@ -82,6 +83,18 @@ def init_db():
     )
     """)
 
+    # Patient users table for login
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        phone_number TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -90,6 +103,22 @@ def seed_sample_data():
     init_db()
     conn = get_connection()
     cursor = conn.cursor()
+
+    # Seed default user accounts for login if empty
+    cursor.execute("SELECT COUNT(*) as count FROM users")
+    if cursor.fetchone()["count"] == 0:
+        now_iso = datetime.now().isoformat()
+        default_users = [
+            ("vishu", "password123", "9876543210", "Vishu Patel"),
+            ("patient", "123456", "9876543210", "Valued Patient"),
+            ("9876543210", "password123", "9876543210", "Phone Caller")
+        ]
+        for u, p, ph, fn in default_users:
+            cursor.execute("""
+            INSERT OR IGNORE INTO users (username, password, phone_number, full_name, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """, (u, p, ph, fn, now_iso))
+        conn.commit()
 
     # Check if doctors already seeded
     cursor.execute("SELECT COUNT(*) as count FROM doctors")
@@ -153,6 +182,21 @@ def seed_sample_data():
                 INSERT OR IGNORE INTO available_slots (doctor_id, doctor_name, date, time, is_booked)
                 VALUES (?, ?, ?, ?, 0)
                 """, (doctor_id, d["name"], target_date, t))
+
+    # Seed default patient user accounts
+    now_iso = datetime.now().isoformat()
+    default_users = [
+        ("vishu", "password123", "9876543210", "Vishu Patel"),
+        ("patient", "123456", "9876543210", "Valued Patient"),
+        ("9876543210", "1234", "9876543210", "Phone Caller")
+    ]
+    for u, p, ph, fn in default_users:
+        cursor.execute("SELECT id FROM users WHERE username = ? OR phone_number = ?", (u, ph))
+        if not cursor.fetchone():
+            cursor.execute("""
+            INSERT OR IGNORE INTO users (username, password, phone_number, full_name, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """, (u, p, ph, fn, now_iso))
 
     conn.commit()
     conn.close()
@@ -241,3 +285,44 @@ def get_call_logs(limit: int = 15) -> List[Dict[str, Any]]:
         rows.append(d)
     conn.close()
     return rows
+
+def authenticate_user(login_id: str, password: str) -> Optional[Dict[str, Any]]:
+    clean_id = login_id.strip()
+    digits = re.sub(r"\D", "", clean_id)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, username, phone_number, full_name, created_at 
+    FROM users 
+    WHERE (username = ? OR phone_number = ? OR (length(?) >= 7 AND phone_number LIKE ?)) 
+      AND password = ?
+    LIMIT 1
+    """, (clean_id, clean_id, digits, f"%{digits}%", password))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def register_user(username: str, password: str, phone_number: str, full_name: Optional[str] = "Patient") -> Optional[Dict[str, Any]]:
+    clean_user = username.strip().lower()
+    digits = re.sub(r"\D", "", phone_number)
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        now_iso = datetime.now().isoformat()
+        cursor.execute("""
+        INSERT INTO users (username, password, phone_number, full_name, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """, (clean_user, password, digits, full_name or "Patient", now_iso))
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return {
+            "id": user_id,
+            "username": clean_user,
+            "phone_number": digits,
+            "full_name": full_name or "Patient",
+            "created_at": now_iso
+        }
+    except Exception:
+        conn.close()
+        return None

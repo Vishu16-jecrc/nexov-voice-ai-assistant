@@ -153,10 +153,11 @@ class GeminiService:
 
                         # Natural fallback phrasing when followup turn times out or errors
                         if fn_name == "book_appointment" and result.get("status") == "success":
+                            phone_digits = ", ".join(list(result.get('phone_number', '')))
                             return (
                                 f"Your appointment with {result.get('doctor_name')} on {result.get('date')} at "
                                 f"{result.get('time')} has been confirmed! Your appointment ID is #{result.get('appointment_id')}. "
-                                f"We have registered it under phone number {result.get('phone_number')}.",
+                                f"We have registered it under phone number {phone_digits}.",
                                 executed_tools
                             )
                         elif fn_name == "cancel_appointment" and result.get("status") == "success":
@@ -256,27 +257,27 @@ class GeminiService:
                     if on_tool_call:
                         await on_tool_call("book_appointment", {"phone": detected_phone}, res)
 
-                    formatted_phone = f"{detected_phone[:3]}-{detected_phone[3:6]}-{detected_phone[6:]}" if len(detected_phone) == 10 else detected_phone
-                    return f"Wonderful! I have booked your appointment with {slot['doctor_name']} for {slot['date']} at {slot['time']} under {formatted_phone}. You're all set! Is there anything else I can assist you with?", executed_tools
+                    spaced_phone = ", ".join(list(detected_phone))
+                    return f"Wonderful! I have booked your appointment with {slot['doctor_name']} for {slot['date']} at {slot['time']} under phone number {spaced_phone}. You are all set! Is there anything else I can assist you with?", executed_tools
 
         # 3. User provides phone number or requests booking
         if detected_phone and any(w in last_user_msg for w in ["book", "take", "am", "pm", "morning", "afternoon", "schedule"]):
-            formatted_phone = f"{detected_phone[:3]}-{detected_phone[3:6]}-{detected_phone[6:]}" if len(detected_phone) == 10 else detected_phone
-            return f"Thank you! Before I confirm your booking with Dr. Sarah Jenkins, I heard your phone number as {formatted_phone}. Is that correct?", executed_tools
+            spaced_phone = ", ".join(list(detected_phone))
+            return f"Thank you! Before I confirm your booking with Dr. Sarah Jenkins, I heard your phone number as {spaced_phone}. Is that phone number correct?", executed_tools
 
         # 4. User wants to cancel an appointment
         if any(w in last_user_msg for w in ["cancel", "drop", "delete appointment", "remove booking"]):
             if detected_phone:
-                formatted_phone = f"{detected_phone[:3]}-{detected_phone[3:6]}-{detected_phone[6:]}" if len(detected_phone) == 10 else detected_phone
+                spaced_phone = ", ".join(list(detected_phone))
                 # Ask confirmation before cancelling as required by rules!
                 if "yes" in last_user_msg or "cancel it" in last_user_msg:
                     res = execute_tool("cancel_appointment", {"phone_number": detected_phone})
                     executed_tools.append({"name": "cancel_appointment", "args": {"phone": detected_phone}, "result": res})
                     if on_tool_call:
                         await on_tool_call("cancel_appointment", {"phone": detected_phone}, res)
-                    return f"Your appointment under {formatted_phone} has been cancelled successfully. Is there anything else I can help you with?", executed_tools
+                    return f"Your appointment under phone number {spaced_phone} has been cancelled successfully. Is there anything else I can help you with?", executed_tools
                 else:
-                    return f"I can certainly help you cancel that. Just to confirm, your phone number is {formatted_phone}, correct?", executed_tools
+                    return f"I can certainly help you cancel that. Just to confirm, your phone number is {spaced_phone}. Is that correct?", executed_tools
             else:
                 return "I can help you cancel your appointment. What is the phone number associated with your booking?", executed_tools
 

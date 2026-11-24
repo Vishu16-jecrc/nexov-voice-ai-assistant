@@ -23,7 +23,9 @@ from .database import (
     get_all_appointments,
     get_appointments_by_phone,
     save_call_log,
-    get_call_logs
+    get_call_logs,
+    authenticate_user,
+    register_user
 )
 from .tools import (
     check_doctor_availability,
@@ -115,6 +117,30 @@ def api_cancel_appointment(req: CancelRequest):
 @app.get("/api/call-logs")
 def get_recent_call_logs():
     return get_call_logs(limit=20)
+
+class LoginRequest(BaseModel):
+    login_id: str
+    password: str
+
+@app.post("/api/auth/login")
+def api_login(req: LoginRequest):
+    user = authenticate_user(req.login_id, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid Login ID or Password")
+    return {"status": "success", "user": user}
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    phone_number: str
+    full_name: Optional[str] = "Patient"
+
+@app.post("/api/auth/register")
+def api_register(req: RegisterRequest):
+    user = register_user(req.username, req.password, req.phone_number, req.full_name)
+    if not user:
+        raise HTTPException(status_code=400, detail="Username already exists or registration failed")
+    return {"status": "success", "user": user}
 
 
 # --- Live WebSocket Voice Pipeline ---

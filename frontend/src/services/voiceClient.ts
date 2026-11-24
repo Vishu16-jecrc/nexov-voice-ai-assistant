@@ -236,7 +236,14 @@ export class VoiceClient {
       window.speechSynthesis.cancel();
 
       // Clean and smooth text for gentle, conversational pronunciation
+      // Ensure phone numbers are strictly spoken as individual digits (e.g. 9, 8, 7, 6, 5...)
       const cleanText = text
+        .replace(/\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, (match) => {
+          const digitsOnly = match.replace(/\D/g, '');
+          return digitsOnly.length >= 7 ? digitsOnly.split('').join(', ') : match;
+        })
+        .replace(/\b\d{10}\b/g, (match) => match.split('').join(', '))
+        .replace(/\b\d{7,12}\b/g, (match) => match.split('').join(', '))
         .replace(/[*_#`~]/g, '')             // remove markdown formatting
         .replace(/\bDr\./gi, 'Doctor ')       // Dr. -> Doctor
         .replace(/\bApt\b/gi, 'Appointment')  // Apt -> Appointment

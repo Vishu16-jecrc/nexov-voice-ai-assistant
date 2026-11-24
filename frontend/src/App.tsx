@@ -5,6 +5,7 @@ import { HeroCards } from './components/HeroCards';
 import { DoctorsList } from './components/DoctorsList';
 import { AppointmentsTable } from './components/AppointmentsTable';
 import { PhoneCallModal } from './components/PhoneCallModal';
+import { LoginModal, AuthUser } from './components/LoginModal';
 import { Doctor, Slot, Appointment, CallState, TranscriptMessage, BookingConfirmation } from './types';
 import { fetchDoctors, fetchDoctorSlots, fetchAppointments } from './services/api';
 import { voiceClient } from './services/voiceClient';
@@ -19,7 +20,22 @@ export const App: React.FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [highlightedAptId, setHighlightedAptId] = useState<number | null>(null);
+
+  // Authentication State
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    const saved = localStorage.getItem('nexov_auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [userPhone, setUserPhone] = useState<string>(() => {
+    const savedUser = localStorage.getItem('nexov_auth_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        if (u.phone_number) return u.phone_number;
+      } catch {}
+    }
     return localStorage.getItem('nexov_user_phone') || '';
   });
 
@@ -30,6 +46,20 @@ export const App: React.FC = () => {
     } else {
       localStorage.removeItem('nexov_user_phone');
     }
+  };
+
+  const handleLoginSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    localStorage.setItem('nexov_auth_user', JSON.stringify(user));
+    if (user.phone_number) {
+      handleUpdateUserPhone(user.phone_number);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('nexov_auth_user');
+    handleUpdateUserPhone('');
   };
 
   // Search & Location
@@ -145,6 +175,9 @@ export const App: React.FC = () => {
         isCallActive={callState === 'calling' || callState === 'connected'}
         onScrollToDoctors={scrollToDoctors}
         onScrollToAppointments={scrollToAppointments}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}
@@ -183,6 +216,7 @@ export const App: React.FC = () => {
             userPhone={userPhone}
             onUpdateUserPhone={handleUpdateUserPhone}
             onStartCall={handleStartCall}
+            onOpenLogin={() => setIsLoginOpen(true)}
           />
         </div>
 
@@ -198,6 +232,13 @@ export const App: React.FC = () => {
         bookingConfirmation={bookingConfirmation}
         isAgentSpeaking={isAgentSpeaking}
         toolActivity={toolActivity}
+      />
+
+      {/* Login & Signup Modal */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       {/* Practo-style Clean Footer */}
