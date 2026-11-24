@@ -5,7 +5,7 @@ import { DoctorsList } from './components/DoctorsList';
 import { AppointmentsTable } from './components/AppointmentsTable';
 import { PhoneCallModal } from './components/PhoneCallModal';
 import { Doctor, Slot, Appointment, CallState, TranscriptMessage, BookingConfirmation, ClinicStats } from './types';
-import { fetchDoctors, fetchDoctorSlots, fetchAppointments, fetchSystemHealth } from './services/api';
+import { fetchDoctors, fetchDoctorSlots, fetchAppointments } from './services/api';
 import { voiceClient } from './services/voiceClient';
 
 export const App: React.FC = () => {
@@ -18,26 +18,18 @@ export const App: React.FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [highlightedAptId, setHighlightedAptId] = useState<number | null>(null);
-  const [pipelineHealth, setPipelineHealth] = useState({
-    pipeline: 'Pipecat',
-    llm: 'Gemini 2.0 Flash',
-    tts: 'ElevenLabs Turbo',
-    stt: 'ElevenLabs Scribe'
-  });
 
   // Load initial clinic data
   const loadData = async () => {
     try {
-      const [docs, slts, apts, health] = await Promise.all([
+      const [docs, slts, apts] = await Promise.all([
         fetchDoctors(),
         fetchDoctorSlots(),
-        fetchAppointments(),
-        fetchSystemHealth()
+        fetchAppointments()
       ]);
       setDoctors(docs);
       setSlots(slts);
       setAppointments(apts);
-      setPipelineHealth(health);
     } catch (err) {
       console.warn("Error loading clinic data:", err);
     }
@@ -67,12 +59,10 @@ export const App: React.FC = () => {
       } else if (event.type === 'booking_confirmed') {
         setBookingConfirmation(event.data);
         setHighlightedAptId(event.data.appointment_id);
-        // Refresh clinic data to reflect newly booked slot
         loadData();
         setTimeout(() => setHighlightedAptId(null), 5000);
       } else if (event.type === 'appointment_cancelled') {
         setHighlightedAptId(event.data.appointment_id);
-        // Refresh clinic data to reflect freed slot and cancelled appointment
         loadData();
         setTimeout(() => setHighlightedAptId(null), 5000);
       }
@@ -104,13 +94,12 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col font-sans">
       
       {/* Top Navigation */}
       <Header 
         onStartCall={handleStartCall}
         isCallActive={callState === 'calling' || callState === 'connected'}
-        pipelineHealth={pipelineHealth}
       />
 
       {/* Main Dashboard Content */}
@@ -146,13 +135,13 @@ export const App: React.FC = () => {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-zinc-200 bg-white py-6 text-center text-xs text-zinc-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 NexovAI Clinical Systems • Built with Pipecat, ElevenLabs & Google Gemini</p>
-          <div className="flex items-center space-x-3 text-slate-400">
+          <p className="font-medium text-zinc-600">© 2026 NexovAI Clinical Systems • Voice Appointment Assistant</p>
+          <div className="flex items-center space-x-3 text-zinc-400">
             <span>FDE Assignment Round 1</span>
             <span>•</span>
-            <span className="font-mono text-brand-400">Caller ID: Spoken Phone Number Only</span>
+            <span className="font-mono text-black font-semibold">Caller ID: Spoken Phone Number Only</span>
           </div>
         </div>
       </footer>
