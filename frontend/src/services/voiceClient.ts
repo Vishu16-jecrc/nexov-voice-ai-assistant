@@ -234,15 +234,46 @@ export class VoiceClient {
 
     try {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      utterance.pitch = 1.05;
 
-      // Pick a natural English female voice
+      // Clean and smooth text for gentle, conversational pronunciation
+      const cleanText = text
+        .replace(/[*_#`~]/g, '')             // remove markdown formatting
+        .replace(/\bDr\./gi, 'Doctor ')       // Dr. -> Doctor
+        .replace(/\bApt\b/gi, 'Appointment')  // Apt -> Appointment
+        .replace(/#/g, 'number ')             // #123 -> number 123
+        .replace(/\|/g, ', ')                 // pipes to pauses
+        .replace(/\s+/g, ' ')                 // collapse spaces
+        .trim();
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 0.94; // Calm, measured, smooth pace (not rushed or robotic)
+      utterance.pitch = 1.0; // Natural, warm feminine pitch
+
+      // Pick the smoothest, most natural female voice available in the browser
       const voices = window.speechSynthesis.getVoices();
-      const femaleVoice = voices.find(v => 
-        (v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Google US English')))
-      ) || voices.find(v => v.lang.startsWith('en'));
+      const femaleVoice = 
+        // 1. Natural / Neural Aria voice (Edge / Windows / Chrome)
+        voices.find(v => v.lang.startsWith('en') && v.name.includes('Aria') && v.name.includes('Natural')) ||
+        // 2. Natural / Neural Jenny voice (very smooth & friendly)
+        voices.find(v => v.lang.startsWith('en') && v.name.includes('Jenny') && v.name.includes('Natural')) ||
+        // 3. Natural / Neural Sonia (soothing British) or Ava / Emma / Neerja
+        voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural') && (v.name.includes('Sonia') || v.name.includes('Ava') || v.name.includes('Emma') || v.name.includes('Neerja'))) ||
+        // 4. Any Neural / Natural English female voice
+        voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman'))) ||
+        // 5. Google UK English Female (gentle and smooth)
+        voices.find(v => v.name === 'Google UK English Female') ||
+        // 6. Google US English (standard smooth female)
+        voices.find(v => v.name === 'Google US English') ||
+        // 7. Microsoft Aria or Jenny (non-natural fallback)
+        voices.find(v => v.lang.startsWith('en') && (v.name.includes('Aria') || v.name.includes('Jenny'))) ||
+        // 8. Samantha / Victoria / Karen / Moira (Apple WebKit)
+        voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen') || v.name.includes('Moira'))) ||
+        // 9. Microsoft Zira (standard Windows female voice)
+        voices.find(v => v.lang.startsWith('en') && v.name.includes('Zira')) ||
+        // 10. Any voice labeled Female / Woman / Girl
+        voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') || v.name.toLowerCase().includes('girl'))) ||
+        // 11. Any English voice
+        voices.find(v => v.lang.startsWith('en'));
 
       if (femaleVoice) {
         utterance.voice = femaleVoice;
@@ -375,3 +406,11 @@ export class VoiceClient {
 }
 
 export const voiceClient = new VoiceClient();
+
+// Preload and prime available browser voices
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+  window.speechSynthesis.getVoices();
+}
