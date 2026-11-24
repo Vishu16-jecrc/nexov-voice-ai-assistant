@@ -1,8 +1,16 @@
-# Environment & Virtualenvs
+# Environment & Secrets
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Virtual environments
 .venv/
 env/
 venv/
-.env
+ENV/
 
 # Database & SQLite
 *.db
