@@ -94,7 +94,7 @@ class GeminiService:
         executed_tools = []
 
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 res = await client.post(url, json=payload)
                 if res.status_code != 200:
                     logger.error(f"Gemini API returned error {res.status_code}: {res.text}")
