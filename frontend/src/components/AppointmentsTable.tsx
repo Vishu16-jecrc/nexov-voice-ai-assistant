@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Appointment } from '../types';
 import { 
   Phone, Search, CheckCircle2, XCircle, Calendar, 
-  Clock, Shield, ArrowRight, UserCheck, PhoneCall, Lock
+  Clock, Shield, ArrowRight, UserCheck, PhoneCall, Lock, RotateCcw
 } from 'lucide-react';
 
 interface AppointmentsTableProps {
@@ -12,6 +12,7 @@ interface AppointmentsTableProps {
   onUpdateUserPhone: (phone: string) => void;
   onStartCall: () => void;
   onOpenLogin?: () => void;
+  onResetAppointments?: () => void;
 }
 
 export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({ 
@@ -20,11 +21,25 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
   userPhone,
   onUpdateUserPhone,
   onStartCall,
-  onOpenLogin
+  onOpenLogin,
+  onResetAppointments
 }) => {
   const [phoneInput, setPhoneInput] = useState('');
   const [viewMode, setViewMode] = useState<'my_bookings' | 'all'>('my_bookings');
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleReset = async () => {
+    if (window.confirm("Start fresh? This will clear all test appointments and free up all slots for booking.")) {
+      try {
+        await fetch('/api/appointments/reset', { method: 'POST' });
+        if (onResetAppointments) {
+          onResetAppointments();
+        }
+      } catch (e) {
+        console.warn("Reset error:", e);
+      }
+    }
+  };
 
   // Handle phone submit
   const handleLookupPhone = (e: React.FormEvent) => {
@@ -101,6 +116,16 @@ export const AppointmentsTable: React.FC<AppointmentsTableProps> = ({
                 All Clinic Registry
               </button>
             </div>
+
+            {/* Start Fresh / Reset Button */}
+            <button
+              onClick={handleReset}
+              className="px-2.5 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-100 text-zinc-600 hover:text-black text-xs font-semibold flex items-center space-x-1.5 transition-all bg-white shadow-sm"
+              title="Reset all test appointments to start fresh"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Start Fresh</span>
+            </button>
 
             {/* Optional search */}
             {viewMode === 'all' && (

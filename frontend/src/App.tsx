@@ -217,6 +217,7 @@ export const App: React.FC = () => {
             onUpdateUserPhone={handleUpdateUserPhone}
             onStartCall={handleStartCall}
             onOpenLogin={() => setIsLoginOpen(true)}
+            onResetAppointments={loadData}
           />
         </div>
 

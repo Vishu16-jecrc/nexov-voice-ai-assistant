@@ -114,6 +114,17 @@ def api_cancel_appointment(req: CancelRequest):
         raise HTTPException(status_code=404, detail=res.get("message"))
     return res
 
+@app.post("/api/appointments/reset")
+def api_reset_appointments():
+    from .database import get_connection
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM appointments")
+    cursor.execute("UPDATE available_slots SET is_booked = 0, booked_by_phone = NULL, booked_at = NULL")
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "All appointments cleared and slots reset to open."}
+
 @app.get("/api/call-logs")
 def get_recent_call_logs():
     return get_call_logs(limit=20)
